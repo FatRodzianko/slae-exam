@@ -1,0 +1,31 @@
+Shellcode from:
+http://shell-storm.org/shellcode/files/shellcode-828.php
+
+The shellcode uses execve to run chmod 0777 on /etc/shadow. This changes the /etc/shadow file to be world readable/writable/executable
+
+Converted the assembly to intel format to compile with nasm for testing
+- this failed
+
+Trying to run the shellcode in shellcode.c and analyzing in gdb
+
+First thing pushed on the stack is "/etc//shadow". This is followed by pushing eax, or 0x0 to null terminate the string
+
+Then "0777" is pushed to the stack, and then esp is moved into the base pointer (ebp)
+
+"/bin/chmod" is pushed onto the stack. ESP is then moved into ebx and then null terminated with eax
+
+Now, esi is pushed to the stack, which contains "/etc//shadow", followed by ebp pushed onto the stack which contains "0777". This is setting up the arguments for when chmod is executed. Finally, ebx is pushed, which contains "/bin/chmod"
+
+After the above, ESP is moved into the register ECX, which for execve requires the string for what execve will run
+
+The shellcode is a total of 58 bytes in length. Polymorphic code should be no more than 87 bytes
+
+First change: make it so all the strings are different, since those are easy to signature. The "/etc//shadow" string is probably the most likely to be signatured
+
+
+
+
+
+
+
+
