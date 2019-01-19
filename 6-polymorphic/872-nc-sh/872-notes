@@ -1,0 +1,54 @@
+shellcode from:
+http://shell-storm.org/shellcode/files/shellcode-872.php
+
+The program starts by pushing the string "-vp17771" to the stack. Following by pushing eax so it is null terminated
+
+Then "-le//bin/sh" is pushed to the stack. ESP is then moved into the EDI register. EAX is pushed onto the stack to null terminate the string.
+
+Next, "/bin//nc" is pushed to the stack and esp is moved into ebx
+
+EDX is pushed onto the stack. this is 0x0 to null terminate the last string.
+ESI is pushed to the stack, which contains the string "-vp17771"
+EDI is pushed to the stack, which contains the string  "-le//bin//sh"
+EBX is pushed to the stack, which contains the string, "/bin//nc"
+ESP points to the memory location containing the string "/bin//nc"
+
+ESP is pushed into ECX. So, ECX first contains the memory location of the string "/bin//nc", and then the arguments that are used when nc runs
+
+Before the syscall is made, the registers are to the following:
+EAX: 0xb (execve syscall)
+EBX: 0xbffff028 (location of the string "/bin//nc")
+ECX: 0xbffff018 (the top of the stack, which contains the memory location of the string for "/bin//nc" and then all the other strings needed to run nc with its arguments)
+
+So, things to change to make it "polymorphic" and harder to signature:
+Length of original shellcode: 58
+Max length of poly code: 87
+
+Change the options for the port, so instead of "-vp17771" it becomes "-vvp8888"
+change the "push" to "mov dword", and use the following hex for the string:
+38383838
+7076762d
+
+Now, modify the call for "-le//bin//sh" to be "-le/.//bin/.//sh"
+68732f2f
+6e69622f
+2f656c2d
+
+68732f2f
+2e2f6e69
+622f2f2e
+2f656c2d
+
+To do null terminations, the code often does "push eax". EDX was also xor'd, so swap eax for edx and edx for eax and so on
+
+
+
+
+
+
+
+
+
+
+
+
