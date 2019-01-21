@@ -1,0 +1,66 @@
+shellcode from http://shell-storm.org/shellcode/files/shellcode-842.php
+
+Shellcode is supposed to read /etc/passwd
+
+At the beginning, the shellcode does the following:
+xor ecx, ecx
+mul ecx
+"mul ecx" means to multiply value provided, ecx, by the value stored in al, and store the result in ax. This means you are taking 0 multiplied by 0 and storing it in ax, making the eax register equal to 0x0.
+
+The string "//etc/passwd" is added to the stack
+
+the stack pointer "esp" is moved into ebx
+
+The syscall for "0x5" is called. This is for "sys_open". This requires the "pathname" for the file to be opened to be provided. This is currently stored in EBX since it points to the string on the stack "//etc/passwd". 
+
+After the read syscall, the next two instructions are for:
+xchg ebx, eax
+xchg ecx, eax
+This "exchanges" the values in ebx and ecx with eax. This does the following:
+makes eax 0x0
+makes ebx 0x3
+makes ecx point to the location of the "//etc/passwd" string
+Important to note that after the "open" syscall, eax was changed from 0x5 to 0x3. The return value of sys_open is the file descriptor used when the file is opened, which in this case is 3
+
+Before the syscall for read is made, the registers are setup as follows:
+eax 0x3
+ebx 0x3
+ecx is the location of the "//etc/passwd" string. More importantly, it is pointing to the top of the stack
+edx 0x1000
+This means the "sys_read" syscall will be made because EAX is 0x3. EBx being 0x3 means the file descriptor "3" will be used, which should it will be a file handle (the first available file descripter since 0,1,2 are stdin, stdout, and stderr). The previous "open" syscall should have created a file descriptor when the file was opened, and it should be set to an fd of 3 because that is the first available file discriptor? It will read up to 4096 bytes (0x1000 is 4096 in decimal).
+
+After the read operation, the number of bytes read are returned into EAX. For this example it will be 0x8db or 2237 bytes
+
+After the read call, the following happens
+xchg edx, eax ; eax is now 0x1000 and edx is 0x8db or 2237 bytes
+xor eax ; zero out eax
+mov al, 0x4 ; eax is 0x4
+mov bl, 0x1 ; ebx is 0x1
+int 0x80 ; syscall
+Registers for the syscall:
+eax 0x4
+ebx 0x1
+ecx location of the contents from the file read, top of the stack
+edx 0x8bd or 2237. Looks to be the length of the read content
+The above syscall is for 0x4, which is for sys_write. ebx is 0x1, so it is writting to the file descriptor 1, or stdout, which means it will be printed to the screen. ECX is pointing to the meory location where the contents of the file read were stored (on the stack). EDX is the length of the content to be printed, which should match the length of the read sys_call
+
+finally, a syscall is made for the sys_exit to exit the application
+
+Polymorphic version of the code.
+Original length: 51
+Max poly length: 76
+
+Change "mul ecx" to "mov eax, ebx"
+
+Change the "push ecx" to "push eax" because they both contain 0x0. Requires moving "mov al, 0x5" below the push eax
+
+Modify the strings pushed on the stack by decreasing them by 1, and then doing "add dword [esp], 0x1"
+
+change "inc edx" to "add edx, 0x1
+
+
+
+
+
+
+
