@@ -1,0 +1,94 @@
+Looking at the shellcode for:
+linux/x86/shell_find_port
+
+Using libemu:
+msfvenom -p linux/x86/shell_find_port -f raw | sctest -vvv -Ss 10000 -G shell-find-port.dot
+The graph makes it look like it is call for "sys_socketcall" is being called. It is specifically going for "getpeername"
+There is then a comparison of the word at [edi+0x2] and 0xde1f. After word, there is a jnz (jump not zero) to 0xffffffff3 if the comparison fails
+
+Will need to continue later with gdb/ndisasm analysis
+
+First, what are the syscalls being made?
+0x66 == sys_socketcall
+0x3f == sys_dup2
+0xb == execve
+
+Starting gdb analysis from the beginning
+
+xor ebx,ebx
+push ebx
+This is making ebx 0x0 and then pushing it onto the stack
+
+mov edi, esp
+This puts the address of the top of the stack into edi
+
+push 0x10
+push esp
+push edi
+push ebx
+Pushes the above values onto the stack
+When you look at the stack after this, the bytes look like:
+0x0, 0xbfffef38 (old stack pointer that was in edi), 0xbfffef34 (stack pointer after pushing the 0x10), 0x00000010, 0x0
+
+mov ecx,esp
+This puts the address of the current stack pointer (0xbfffef28) into ecx
+
+mov bl, 0x7
+move 0x7 into ebx so it is now 0x7
+
+inc dword ptr [ecx]
+This increases the value at the memory address that ecx is pointing at by 1. ECX is currently pointing at the address for the top of the stack
+
+push 0x66
+pop eax
+pushes 0x66 to the stack and then pops it into eax to make EAX 0x66
+
+
+int 0x80
+This is the interrupt to make the sys call for sys_socketcall
+how the registers are setup for the syscall:
+eax 0x66 - this is to make the socketcall syscall
+ebx 0x7 - this is the first argument for sys_socketcall "int call". This "call" can be matched up in /usr/include/linux/net.h. Call 0x7 == SYS_GETPEERNAME
+ecx - this is the argument "args" that will be passed to getpeername
+
+getpeername requires the following:
+getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+ECX will contain all the arguments for this, which looks like this:
+0xbfffef28:	0x00000001	0xbfffef38	0xbfffef34	0x00000010
+So, the sockfd is 1
+0xbfffef38 is the memory address for the buffer that the address will be returned to
+0xbfffef34 is the memory address the int used for the length of the address, which points to the value 0x10 or 16
+
+After this syscall for socketcall completes, the address should be stored in 0xbfffef38, which is also the address stored in EDI
+
+cmp    WORD PTR [edi+0x2],0x4621
+This takes the word located at the address stored at edi+2 and compares it to the value 0x4621, or 17,953
+EDI+2 currently contains 0x84790000
+If the comparison passes, the zero flag (zf) should be set
+
+jne 0x804a04e <code+14>
+If the comparison fails, jump back to code+14, This first try will fail.
+
+The part it jumps back to is:
+inc dword ptr [ecx]
+So the shellcode will keep increasing the value ecx is pointing to so that whent he socketcall/getpeername syscall is made, it will look at a different file descriptor. It will keep doing this until it finds and address that equals the comparison value of 0x4621. Based on description of shellcode, I imagine this is looking for an established connection on the port that is randomly generated when the shellcode is generated
+
+Unfortunately, this never successfully found the address/port. Will need to skip ahead to see what is happen
+
+pop ebx
+push 0x2
+pop ecx
+Pops the top of stack into ebx. This is the value 0x388355c5. I imagine this was meant to be the file descriptor for the discovered established connection?
+pushes 0x2 onto the stack so it can be popped into ecx
+
+mov al, 0x3f
+int 0x80
+This makes the syscall for dup2. This requires the following: int dup2(int oldfd, int newfd);
+so, what I imagine is happening is ebx is supposed to contain the old fd used by the connection, and ecx now contains 2, for stderr.
+
+dec ecx
+jns 0x804061 <code+33>
+jns is "jump not signed", which will basically keep jumping back to code+33 until the signed flag (sf) is set, which will happen when an operation results in a negative value.
+So, this causes a loop so dup2 is executed with ecx of 2, 1, then 0. This sets up the file descriptors that will need to be used later for the shell, stdin, stdout, and stderr. After that, it moves on
+
+

@@ -1,0 +1,5 @@
+msf payloads to maybe look at:
+
+linux/x86/adduser
+linux/x86/shell_find_port
+
