@@ -1,0 +1,20 @@
+Downloading/unpacking crypter.py
+  Getting page http://pypi.python.org/simple/crypter.py
+  Could not fetch URL http://pypi.python.org/simple/crypter.py: HTTP Error 403: SSL is required
+  Will skip URL http://pypi.python.org/simple/crypter.py when looking for download links for crypter.py
+  Getting page http://pypi.python.org/simple/
+  Could not fetch URL http://pypi.python.org/simple/: HTTP Error 403: SSL is required
+  Will skip URL http://pypi.python.org/simple/ when looking for download links for crypter.py
+  Cannot fetch index base URL http://pypi.python.org/simple/
+Cannot find requirement crypter.py, nor fetch index URL http://pypi.python.org/simple/
+Exception information:
+Traceback (most recent call last):
+  File "/usr/local/bin/pyinstall.py", line 305, in main
+    requirement_set.install_files(finder)
+  File "/usr/local/bin/pyinstall.py", line 1099, in install_files
+    url = finder.find_requirement(req_to_install, upgrade=self.upgrade)
+  File "/usr/local/bin/pyinstall.py", line 396, in find_requirement
+    url_name = self._find_url_name(Link(self.index_urls[0]), url_name, req)
+  File "/usr/local/bin/pyinstall.py", line 469, in _find_url_name
+    raise DistributionNotFound('Cannot find requirement %s, nor fetch index URL %s' % (req, index_url))
+DistributionNotFound: Cannot find requirement crypter.py, nor fetch index URL http://pypi.python.org/simple/
