@@ -91,4 +91,6 @@ jns 0x804061 <code+33>
 jns is "jump not signed", which will basically keep jumping back to code+33 until the signed flag (sf) is set, which will happen when an operation results in a negative value.
 So, this causes a loop so dup2 is executed with ecx of 2, 1, then 0. This sets up the file descriptors that will need to be used later for the shell, stdin, stdout, and stderr. After that, it moves on
 
+The next instructions are setting up the execve call to run /bin//sh. It pushes the string "/bin//sh" to the stack, moves a pointer to that string into ebx, pushes null bytes to the stack, and pushes the pointer to the string onto the stack. Finally, the stack pointer is pushed into ecx, which is a pointer to the string pointer
 
+syscall for execve is called and /bin//sh is executed
