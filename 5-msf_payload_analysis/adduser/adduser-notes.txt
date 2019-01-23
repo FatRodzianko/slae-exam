@@ -1,0 +1,14 @@
+Looking at the shellcode for:
+linux/x86/adduser
+
+This should be adding a user with the name "metasploit" and a shell of /bin/sh
+
+Looking at shellcode in libemu:
+msfvenom --payload linux/x86/adduser -f raw | sctest -vvv -Ss 10000 -G adduser.dot
+
+For some reason, libemu doesn't seem to show anything...
+
+Moving onto gdb analysis
+
+
+
