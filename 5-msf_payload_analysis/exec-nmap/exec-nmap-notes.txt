@@ -1,0 +1,105 @@
+Will be looking at linux/x86/exec that runs a command with a lot of options to see what that looks like
+msfvenom -p linux/x86/exec CMD="/usr/bin/nmap -p 21,22,23 -sV --stats-every 60s -T4 scanme.nmap.org" -f c
+
+push 0xb
+pop eax
+Sets eax to 0xb, likely to run execve
+
+cdq
+This appears to have the effect of making edx 0x0
+
+push edx
+pushw 0x632d
+this appears to push the string "-c" to the stack
+
+mov edi, esp
+Move the stack pointer address into edi
+
+push 0x68732f
+push 0x6e69622f
+This pushes "/bin/sh" onto the stack
+
+mov ebx,esp
+put the current stack pointer, which points to the "/bin/sh" string into ebx
+
+push edx
+put null terminator on the stack
+
+call   0x804a0a1 <code+97>
+jump to this memory location
+When this call is made, the memory address of the next instruction is stored on the stack, which is 0x0804a05d
+0x0804a05d contains the string for the nmap command
+
+push edi
+This puts the value of edi on top of the stack. This currently is 0xbfffef56, which points to the string "-c"
+
+push ebx
+Puts ebx onto the stack. This points to the string "/bin/sh
+
+mov ecx, esp
+Puts the address of the stack pointer into ecx. 
+
+so, when the execve syscall is made, it looks like the following
+eax 0xb execve syscall
+ebx 0xbfffef4e this points to the memory location of the "/bin/sh" string
+ecx 0xbfffef3e points to a pointer of the memory location for the "/bin/sh" string
+
+This will actually fail, which is because there are \x00's in the shellcode. Strangely, it seems to work when outside of gdb.
+Libemu shows the execve call with the nmap string
+
+
+
+
+
+
+=> 0x0804a040 <+0>:	push   0xb
+   0x0804a042 <+2>:	pop    eax
+   0x0804a043 <+3>:	cdq    
+   0x0804a044 <+4>:	push   edx
+   0x0804a045 <+5>:	pushw  0x632d
+   0x0804a049 <+9>:	mov    edi,esp
+   0x0804a04b <+11>:	push   0x68732f
+   0x0804a050 <+16>:	push   0x6e69622f
+   0x0804a055 <+21>:	mov    ebx,esp
+   0x0804a057 <+23>:	push   edx
+   0x0804a058 <+24>:	call   0x804a0a1 <code+97>
+   0x0804a05d <+29>:	das    
+   0x0804a05e <+30>:	jne    0x804a0d3
+   0x0804a060 <+32>:	jb     0x804a091 <code+81>
+   0x0804a062 <+34>:	bound  ebp,QWORD PTR [ecx+0x6e]
+   0x0804a065 <+37>:	das    
+   0x0804a066 <+38>:	outs   dx,BYTE PTR ds:[esi]
+   0x0804a067 <+39>:	ins    DWORD PTR es:[edi],dx
+   0x0804a068 <+40>:	popa   
+   0x0804a069 <+41>:	jo     0x804a08b <code+75>
+   0x0804a06b <+43>:	sub    eax,0x31322070
+   0x0804a070 <+48>:	sub    al,0x32
+   0x0804a072 <+50>:	xor    ch,BYTE PTR [edx+esi*1]
+   0x0804a075 <+53>:	xor    esp,DWORD PTR [eax]
+   0x0804a077 <+55>:	sub    eax,0x2d205673
+   0x0804a07c <+60>:	sub    eax,0x74617473
+   0x0804a081 <+65>:	jae    0x804a0b0
+   0x0804a083 <+67>:	gs jbe 0x804a0eb
+   0x0804a086 <+70>:	jb     0x804a101
+   0x0804a088 <+72>:	and    BYTE PTR [esi],dh
+   0x0804a08a <+74>:	xor    BYTE PTR [ebx+0x20],dh
+   0x0804a08d <+77>:	sub    eax,0x73203454
+   0x0804a092 <+82>:	arpl   WORD PTR [ecx+0x6e],sp
+   0x0804a095 <+85>:	ins    DWORD PTR es:[edi],dx
+   0x0804a096 <+86>:	gs outs dx,BYTE PTR cs:[esi]
+   0x0804a099 <+89>:	ins    DWORD PTR es:[edi],dx
+   0x0804a09a <+90>:	popa   
+   0x0804a09b <+91>:	jo     0x804a0cb
+   0x0804a09d <+93>:	outs   dx,DWORD PTR ds:[esi]
+   0x0804a09e <+94>:	jb     0x804a107
+   0x0804a0a0 <+96>:	add    BYTE PTR [edi+0x53],dl
+   0x0804a0a3 <+99>:	mov    ecx,esp
+   0x0804a0a5 <+101>:	int    0x80
+   0x0804a0a7 <+103>:	add    BYTE PTR [eax],al
+
+(gdb) x/10i 0x804a0a1
+=> 0x804a0a1 <code+97>:	push   edi
+   0x804a0a2 <code+98>:	push   ebx
+   0x804a0a3 <code+99>:	mov    ecx,esp
+   0x804a0a5 <code+101>:	int    0x80
+
