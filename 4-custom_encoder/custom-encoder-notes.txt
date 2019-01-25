@@ -1,1 +1,3 @@
-make sure to note that the encoder shellcode needs to be executed in a shellcode runner, otherwise there is a segmentation fault. The segmentation fault is caused because the assembly is overwriting memory in the ".text" section, which is read-only
+make sure to note that the encoder shellcode needs to be executed in a shellcode runner, otherwise there is a segmentation fault. The segmentation fault is caused because the assembly is overwriting memory in the ".text" section, which is read-only.
+
+rewrote the assembly so that the shellcode is pushed onto the stack and then the code jumps to esp. This makes it so it doesn't have to write over .text memory space. Seems to work!
