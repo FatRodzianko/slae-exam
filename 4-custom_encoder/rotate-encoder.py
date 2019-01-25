@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Pyon shift bytes encoder 
+# Python rotate bytes encoder 
 import random
 import argparse
 
