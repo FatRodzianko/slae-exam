@@ -1,0 +1,1 @@
+make sure to note that the encoder shellcode needs to be executed in a shellcode runner, otherwise there is a segmentation fault. The segmentation fault is caused because the assembly is overwriting memory in the ".text" section, which is read-only

@@ -48,4 +48,4 @@ print "Encoded shellcode in 0x format:"
 print encoded2
 print "\n"
 
-print 'Length of shellcode: %d' % len(bytearray(shellcode))
+print 'Length of encoded shellcode: %d' % len(bytearray(shellcode))
