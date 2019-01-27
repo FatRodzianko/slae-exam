@@ -1,0 +1,47 @@
+Steps to perform a bind shell:
+Based on libemu of msfvenom linux/x86/shell_bind_tcp payload output
+- create a socket
+- - - import to note the return value for this. It is the FD of the socket to be used later in the other socket/network stuff
+- Create a socket/bind for the port being used on the host 0.0.0.0 (listening on all interfaces)
+- set up a socket listen
+- setup a socket accept
+- - - this will return a value that is the FD of the accept? to be used in the dup2 processes
+- use dup2 to duplicate file descriptors. msf does this several times. Possible it is only needed for 0,1,2 to get stdin, stdout, and stderr
+- - - this works by copying the "old" FD from the socket accpet and duplicating it in a new FD, which should at least be 0,1,2
+- setup execve to launch /bin//sh or whatever shell is chosen
+
+Socket, bind, listen, and accept all use the same syscall 0x66 (sys_socketcall). They pass different arguments to do different things with the socket. The list of which argument numbers call which function (socket, bind, etc.) is found in /usr/include/linux/net.h
+
+***Setting up the first Socket:
+- socketcall requires two things:
+- - - int call - this what will be called (socket, bind, etc.)
+- - - unsigned long *args - a point to the arguments being passed to the call
+- The first socketcall will be for sys_socket, which will require EBX to be 1, according to /usr/include/linux/net.h
+- ECX should then contain a pointer to the arguments being passed to sys_socket. The arguments to be used in sys_socket can be found using "man 2 socket". They are:
+- - - int domain - this chooses the protocol familiy to use. msf does "2", which looks to be AF_INET/ IPv4 protocol
+- - - int type - this is the "communication semantics". msf uses "1", which appears to be SOCK_STREAM. Or a "sequenced, reliable, two-way, connection-based byte streams"
+- - - int protocol - this is the protocol to use in the socket. msf uses protocol "0". Looks to be a tcp_socket according to "man 7 ip"
+
+***Setting up the bind:
+- EBX will need to be set to 0x2 for the bind sys_socketcall
+- according to "man 2 bind" the requirements for bind are as follows:
+- - - int sockfd - the file descriptor created by the previous socket call. This is stored in EAX after the first sys_socketcall
+- - - const struct sockaddr *addr - this will be a pointer to the address/port to bind to
+- - - socklen_t addrlen - the length of the address. Us 0x10 for an address with a length of 16
+
+So, first set up the bind port, which will contain the port number and the address. This is the "sockaddr" variable used in the bind (see man 2 bind):
+- push a null or 0x0 to the stack. This is the address, "0x00000000", which should tell it to listen on all interfaces
+- take the decimal of the port, convert to hex, and push onto the stack in reverse order
+- finally, need tell this to use AF_INET/IPv4, by adding a 0x2 to the stack before the port and address
+This will now be on the stack. Push the stack pointer into ECX to save this address
+
+Now, the parameters for the bind will need to be pushed onto the stack and then into ECX as a pointer. Required are the socket FD, a pointer to the sockaddr, and then the length of the address
+- the socket FD is in EAX from the previous sys_socketcall
+- pointer to sockaddr is in ECX
+- the length of the address will be 0x10, or 16 in decimal
+
+
+
+
+
+
