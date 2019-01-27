@@ -46,6 +46,15 @@ _start:
 	int 0x80
 
 
-	; setup the "listen" sys_socketcall
-	
+	; setup the "listen" sys_socketcall. Need to provide listen with the socket file descriptor and a "backlog", which
+	xor ebx,ebx
+	push ebx ; this is "int backlog" for listen. It will be 0
+	push dword [ecx] ; ecx is currently pointing at the file descriptor from the previous syscall. Push to the stack
+	mov ecx, esp ; put the pointer to the parameters needed for listen into ECX to be used in the sys_socketcall
+
+	mov al, 0x66
+	mov bl, 0x4
+	int 0x80
+
+	; set up the socket "accept"
 	
