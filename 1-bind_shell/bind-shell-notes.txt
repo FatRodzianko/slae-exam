@@ -53,6 +53,19 @@ The socketfd is no longer stored in EAX, but it is currently the first value at 
 
 Listen is number 4 in sys_socketcall, so EBX will need to be 0x4. EAX will be 0x66
 
+*** Setting up the accept sys_socketcall
+Accept requires a few things:
+- int sockfd - the FD of the socket
+- struck sockaddr *addr - pointer to the sockaddr
+- socklen_t *addrlen - pointer to the address length
+The second two can be null, so they can be 0's for this.
+
+***Setting up input/output for the accepted connection
+This works by using dup2 to create a copy of a file descriptor. Will provide the system with the "old" file descriptor, which is the socket FD, and the new file descriptor to copy it into. The "new" FD's will be 0,1, and 2 for stdin, stdout, and stderr
+
+When the "accept" syscall completes and is successful, it stores the socket FD in eax. so, 
+
+
 
 
 
