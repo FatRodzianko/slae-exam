@@ -63,7 +63,8 @@ The second two can be null, so they can be 0's for this.
 ***Setting up input/output for the accepted connection
 This works by using dup2 to create a copy of a file descriptor. Will provide the system with the "old" file descriptor, which is the socket FD, and the new file descriptor to copy it into. The "new" FD's will be 0,1, and 2 for stdin, stdout, and stderr
 
-When the "accept" syscall completes and is successful, it stores the socket FD in eax. so, 
+When the "accept" syscall completes and is successful, it stores the socket FD in eax. so, move the value of EAX into ebx
+Set ECX to 2, and then create a loop that decreases the 
 
 
 

@@ -1,0 +1,27 @@
+Analyzing the reverse TCP shellcode from:
+linux/x86/shell_reverse_tcp
+It looks like it might be a bit simpler as it doesn't need to do the bind, listen, accept. Its just:
+- socket
+- dup2
+- connect
+- execve
+
+*** Setting up the socket
+This is the same as it was for the bind shell. Need to set up a TCP socket, using domain of "AF_INET/IPv4", type of "SOCK_STREAM", and protocol of TCP
+EAX 0x66
+EBX 0x1
+ECX pointer to the socket parameters which are 2,1,0
+
+*** Setting up the input/output for the shell with dup
+Take the FD from the socket creation, and "duplicate" it into the FD's 0,1,2 so that the reverse shell has stdin, stdout, stderr
+
+*** Setting up the CONNECT call
+First, push everything for the sockaddr, or the address and port to connect to onto the stack
+- push 0x0101017f - this is the IP address
+- push word 0xB922 - this is the port
+- push word 0x2 - this is to create an AF_INET/IPv4 connection
+
+Then, you'll need to set up the parameters needed for the connect syscall, which are
+- int sockfd - the FD for the socket, saved in EDX right now
+- const struct sockaddr *addr - pointer to the sockaddr information. This was previously pushed onto the stack, and the stack pointer saved in ECX
+- socklen_t addrlen - length of the address, should be 0x10 or 16
