@@ -1,0 +1,7 @@
+What does an egg hunter do?
+It searches through memory of an application location for an "egg", or a sequence of bytes specifically chosen by the user and jumps to the address of the egg.
+
+so you first
+- insert your egg hunter shellcode as the first stage of the shellcode
+- place the egg somewhere in memory
+- place the shellcode you want to execute immediately after the egg as the second stage
