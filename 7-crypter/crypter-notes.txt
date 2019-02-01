@@ -1,0 +1,6 @@
+How to execute linux shellcode in python:
+http://hacktracking.blogspot.com/2015/05/execute-shellcode-in-python.html
+
+These helped a lot for the encryption/decryption:
+https://github.com/Arno0x/ShellcodeWrapper/blob/master/shellcode_encoder.py
+https://github.com/Arno0x/ShellcodeWrapper/blob/master/templates/encryptedShellcodeWrapper.py
